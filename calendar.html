@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalender Keuangan - MY FINANCE</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/calendar.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><i data-lucide="wallet"></i><span>MY FINANCE</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">UTAMA</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="transactions.html" class="nav-item"><i data-lucide="arrow-left-right"></i> Transaksi</a>
+        <a href="accounts.html" class="nav-item"><i data-lucide="credit-card"></i> Akun & Saldo</a>
+        <a href="budget.html" class="nav-item"><i data-lucide="pie-chart"></i> Budget</a>
+        <a href="savings.html" class="nav-item"><i data-lucide="piggy-bank"></i> Tabungan</a>
+        <a href="analytics.html" class="nav-item"><i data-lucide="line-chart"></i> Analitik</a>
+        <a href="reports.html" class="nav-item"><i data-lucide="file-text"></i> Laporan</a>
+        <div class="nav-section-title" style="margin-top: 1rem;">LAINNYA</div>
+        <a href="calendar.html" class="nav-item active"><i data-lucide="calendar"></i> Kalender</a>
+        <a href="debts.html" class="nav-item"><i data-lucide="receipt"></i> Hutang & Piutang</a>
+        <a href="bills.html" class="nav-item"><i data-lucide="clock"></i> Tagihan</a>
+        <a href="categories.html" class="nav-item"><i data-lucide="tags"></i> Kategori</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> Pengaturan</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div class="page-title-group">
+          <h1>Kalender Keuangan</h1>
+          <p>Lihat persebaran transaksi, arus kas, dan tanggal jatuh tempo tagihan</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-secondary btn-sm" id="prevMonthBtn">← Bulan Lalu</button>
+          <span id="calendarMonthTitle" style="font-weight: 700; font-size: 1rem; min-width: 140px; text-align: center;">Agustus 2026</span>
+          <button class="btn btn-secondary btn-sm" id="nextMonthBtn">Bulan Depan →</button>
+        </div>
+      </header>
+
+      <div class="card" style="padding: 1rem;">
+        <!-- Calendar Days Header -->
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+          <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
+        </div>
+
+        <!-- Calendar Grid -->
+        <div id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem;">
+          <!-- Cells rendered dynamically -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth() + 1; // 1-12
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      renderCalendar();
+
+      document.getElementById("prevMonthBtn").addEventListener("click", () => {
+        currentMonth--;
+        if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+        renderCalendar();
+      });
+
+      document.getElementById("nextMonthBtn").addEventListener("click", () => {
+        currentMonth++;
+        if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+        renderCalendar();
+      });
+    });
+
+    async function renderCalendar() {
+      const dateObj = new Date(currentYear, currentMonth - 1, 1);
+      const monthName = dateObj.toLocaleString('id-ID', { month: 'long' });
+      document.getElementById("calendarMonthTitle").textContent = `${monthName} ${currentYear}`;
+
+      const { transactions } = await fetchMonthCalendarData(currentUser.id, currentMonth, currentYear);
+      const matrix = generateCalendarMatrix(currentYear, currentMonth);
+
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+
+      matrix.forEach(week => {
+        week.forEach(day => {
+          if (!day) {
+            grid.innerHTML += `<div style="background: var(--surface-hover); min-height: 80px; border-radius: var(--radius-sm); opacity: 0.3;"></div>`;
+            return;
+          }
+
+          const dayStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const dayTxs = transactions.filter(t => t.transaction_date === dayStr);
+
+          let incSum = 0;
+          let expSum = 0;
+          dayTxs.forEach(t => {
+            if (t.type === "income") incSum += Number(t.amount);
+            if (t.type === "expense") expSum += Number(t.amount);
+          });
+
+          grid.innerHTML += `
+            <div class="card" style="min-height: 80px; padding: 0.4rem; font-size: 0.75rem; border: 1px solid var(--border);">
+              <div style="font-weight: 700; text-align: right; margin-bottom: 0.2rem;">${day}</div>
+              ${incSum > 0 ? `<div class="text-success" style="font-weight: 600;">+${formatRupiah(incSum)}</div>` : ''}
+              ${expSum > 0 ? `<div class="text-danger" style="font-weight: 600;">-${formatRupiah(expSum)}</div>` : ''}
+            </div>
+          `;
+        });
+      });
+
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

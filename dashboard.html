@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - MY FINANCE</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/accounts.js"></script>
+  <script src="js/transactions.js"></script>
+  <script src="js/budget.js"></script>
+  <script src="js/categories.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Desktop Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <i data-lucide="wallet"></i>
+        <span>MY FINANCE</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">UTAMA</div>
+        <a href="dashboard.html" class="nav-item active"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="transactions.html" class="nav-item"><i data-lucide="arrow-left-right"></i> Transaksi</a>
+        <a href="accounts.html" class="nav-item"><i data-lucide="credit-card"></i> Akun & Saldo</a>
+        <a href="budget.html" class="nav-item"><i data-lucide="pie-chart"></i> Budget</a>
+        <a href="savings.html" class="nav-item"><i data-lucide="piggy-bank"></i> Tabungan</a>
+        <a href="analytics.html" class="nav-item"><i data-lucide="line-chart"></i> Analitik</a>
+        <a href="reports.html" class="nav-item"><i data-lucide="file-text"></i> Laporan</a>
+
+        <div class="nav-section-title" style="margin-top: 1rem;">LAINNYA</div>
+        <a href="calendar.html" class="nav-item"><i data-lucide="calendar"></i> Kalender</a>
+        <a href="debts.html" class="nav-item"><i data-lucide="receipt"></i> Hutang & Piutang</a>
+        <a href="bills.html" class="nav-item"><i data-lucide="clock"></i> Tagihan</a>
+        <a href="categories.html" class="nav-item"><i data-lucide="tags"></i> Kategori</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> Pengaturan</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-summary">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div class="user-info">
+            <span class="user-name" id="userName">User</span>
+            <span class="user-email" id="userEmail">user@email.com</span>
+          </div>
+        </div>
+        <button class="btn-icon" onclick="logoutUser()" title="Keluar"><i data-lucide="log-out"></i></button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Page Header -->
+      <header class="page-header">
+        <div class="page-title-group">
+          <h1>Dashboard</h1>
+          <p id="currentDateText">Rabu, 12 Agustus 2026</p>
+        </div>
+        <button class="btn btn-primary" onclick="openNewTxModal()">
+          <i data-lucide="plus"></i> Tambah Transaksi
+        </button>
+      </header>
+
+      <!-- Dashboard Hero Card (Total Money Overview) -->
+      <section class="dashboard-hero">
+        <div class="hero-header">
+          <div>
+            <div class="hero-welcome">Selamat datang 👋</div>
+            <div class="hero-total-label">TOTAL KEKAYAAN BERSIH</div>
+          </div>
+          <span class="badge badge-income" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;">Aktif</span>
+        </div>
+
+        <div class="hero-total-amount" id="totalMoneyText">Rp0</div>
+
+        <div class="hero-stats-grid">
+          <div>
+            <div class="stat-item-label">UANG OPERASIONAL</div>
+            <div class="stat-item-value" id="operationalMoneyText">Rp0</div>
+          </div>
+          <div>
+            <div class="stat-item-label">DANA DARURAT</div>
+            <div class="stat-item-value" id="emergencyMoneyText">Rp0</div>
+          </div>
+          <div>
+            <div class="stat-item-label">TOTAL TABUNGAN</div>
+            <div class="stat-item-value" id="savingsMoneyText">Rp0</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Daily Spending Indicator & Alert Card -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        <div class="card" style="background: var(--surface-hover);">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+            <i data-lucide="compass" style="color: var(--primary);"></i>
+            <h3 class="card-title">Batas Pengeluaran Harian Disarankan</h3>
+          </div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);" id="dailyLimitText">Rp0 / hari</div>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+            *Indikator perencanaan: Sisa Uang Operasional ÷ Sisa Hari Bulan Ini
+          </p>
+        </div>
+
+        <div class="card" id="budgetAlertCard">
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+            <i data-lucide="shield-alert" style="color: var(--warning);"></i>
+            <h3 class="card-title">Status Budget Bulanan</h3>
+          </div>
+          <div id="budgetAlertContent" style="font-size: 0.85rem; color: var(--text-muted);">
+            Memuat status budget...
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Grid -->
+      <section>
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem;">Aksi Cepat</h3>
+        <div class="quick-actions-grid">
+          <button class="quick-action-btn" onclick="openNewTxModal('income')">
+            <i data-lucide="arrow-down-left" style="color: var(--success);"></i>
+            <span>+ Pemasukan</span>
+          </button>
+          <button class="quick-action-btn" onclick="openNewTxModal('expense')">
+            <i data-lucide="arrow-up-right" style="color: var(--danger);"></i>
+            <span>+ Pengeluaran</span>
+          </button>
+          <button class="quick-action-btn" onclick="openNewTxModal('transfer')">
+            <i data-lucide="arrow-left-right" style="color: var(--info);"></i>
+            <span>⇄ Transfer</span>
+          </button>
+          <a href="savings.html" class="quick-action-btn">
+            <i data-lucide="piggy-bank" style="color: var(--primary);"></i>
+            <span>+ Tabungan</span>
+          </a>
+          <a href="debts.html" class="quick-action-btn">
+            <i data-lucide="receipt" style="color: var(--warning);"></i>
+            <span>+ Hutang</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Accounts Overview List -->
+      <section>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+          <h3 style="font-size: 1rem; font-weight: 700;">Daftar Akun Keuangan</h3>
+          <a href="accounts.html" style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">Lihat Semua & Koreksi Saldo →</a>
+        </div>
+        <div class="overview-cards-grid" id="accountsGrid">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- Recent Transactions List -->
+      <section class="card">
+        <div class="card-header">
+          <h3 class="card-title">Transaksi Terbaru</h3>
+          <a href="transactions.html" style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">Lihat Semua</a>
+        </div>
+        <div class="transaction-list" id="recentTxList">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav">
+      <a href="dashboard.html" class="bottom-nav-item active">
+        <i data-lucide="home"></i>
+        <span>Home</span>
+      </a>
+      <a href="transactions.html" class="bottom-nav-item">
+        <i data-lucide="arrow-left-right"></i>
+        <span>Transaksi</span>
+      </a>
+      <button class="fab-add-button" onclick="openNewTxModal()">
+        <i data-lucide="plus" style="width: 24px; height: 24px;"></i>
+      </button>
+      <a href="analytics.html" class="bottom-nav-item">
+        <i data-lucide="line-chart"></i>
+        <span>Analitik</span>
+      </a>
+      <a href="settings.html" class="bottom-nav-item">
+        <i data-lucide="menu"></i>
+        <span>Menu</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Reusable New Transaction Modal with Simulator -->
+  <div class="modal-overlay" id="txModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="txModalTitle">Tambah Transaksi</h3>
+        <button class="btn-icon" onclick="closeModal('txModal')">✕</button>
+      </div>
+      <form id="txForm">
+        <div class="modal-body">
+          <!-- Type Tabs -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+            <button type="button" id="txTabExpense" class="btn btn-secondary btn-sm" style="flex: 1;">Pengeluaran</button>
+            <button type="button" id="txTabIncome" class="btn btn-secondary btn-sm" style="flex: 1;">Pemasukan</button>
+            <button type="button" id="txTabTransfer" class="btn btn-secondary btn-sm" style="flex: 1;">Transfer</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nominal (Rp)</label>
+            <input class="form-input" type="number" id="txAmount" placeholder="0" required min="1">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nama / Deskripsi Transaksi</label>
+            <input class="form-input" type="text" id="txDesc" placeholder="Makan Siang / Uang Saku" required>
+          </div>
+
+          <div id="accountSelectGroup" class="form-group">
+            <label class="form-label" id="accountLabel">Akun Pembayaran</label>
+            <select class="form-select" id="txAccount" required></select>
+          </div>
+
+          <div id="destAccountGroup" class="form-group hidden">
+            <label class="form-label">Ke Akun Tujuan</label>
+            <select class="form-select" id="txDestAccount"></select>
+          </div>
+
+          <div id="categoryGroup" class="form-group">
+            <label class="form-label">Kategori</label>
+            <select class="form-select" id="txCategory"></select>
+          </div>
+
+          <div id="incomeSourceGroup" class="form-group hidden">
+            <label class="form-label">Sumber Pemasukan</label>
+            <select class="form-select" id="txIncomeSource">
+              <option value="Orang Tua">Orang Tua</option>
+              <option value="Mini Usaha">Mini Usaha</option>
+              <option value="Beasiswa">Beasiswa</option>
+              <option value="Hadiah">Hadiah</option>
+              <option value="Bonus">Bonus</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label">Tanggal</label>
+              <input class="form-input" type="date" id="txDate" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Jam</label>
+              <input class="form-input" type="time" id="txTime" required>
+            </div>
+          </div>
+
+          <!-- Simulator Box -->
+          <div id="simulatorBox" style="background: var(--surface-hover); border: 1px dashed var(--border); border-radius: var(--radius-md); padding: 0.85rem; margin-top: 1rem;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); margin-bottom: 0.25rem;">⚡ SIMULASI TRANSAKSI</div>
+            <div id="simulatorOutput" style="font-size: 0.8rem; color: var(--text-muted);">
+              Masukkan nominal & pilih akun untuk melihat proyeksi saldo.
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('txModal')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let currentAccounts = [];
+    let currentTxType = "expense";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      // Render Profile in Sidebar
+      document.getElementById("userName").textContent = currentUser.user_metadata?.full_name || "Anak Kos";
+      document.getElementById("userEmail").textContent = currentUser.email;
+      document.getElementById("userAvatar").textContent = (currentUser.user_metadata?.full_name || "A")[0].toUpperCase();
+      document.getElementById("currentDateText").textContent = formatDateIndonesian(new Date());
+
+      // Set default date & time in modal
+      document.getElementById("txDate").value = new Date().toISOString().split("T")[0];
+      document.getElementById("txTime").value = new Date().toTimeString().substring(0, 5);
+
+      await loadDashboardData();
+
+      // Tab Events in Modal
+      setupModalTabs();
+    });
+
+    async function loadDashboardData() {
+      // 1. Fetch Accounts & Balances
+      currentAccounts = await fetchAccountsWithBalances(currentUser.id);
+      const overview = calculateFinancialOverview(currentAccounts);
+
+      document.getElementById("totalMoneyText").textContent = formatRupiah(overview.totalMoney);
+      document.getElementById("operationalMoneyText").textContent = formatRupiah(overview.operationalMoney);
+      document.getElementById("emergencyMoneyText").textContent = formatRupiah(overview.emergencyFund);
+      document.getElementById("savingsMoneyText").textContent = formatRupiah(overview.totalSavings);
+
+      // 2. Daily Spending Limit Indicator
+      const now = new Date();
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const remainingDays = Math.max(1, lastDayOfMonth - now.getDate() + 1);
+      const dailyLimit = overview.operationalMoney / remainingDays;
+      document.getElementById("dailyLimitText").textContent = `${formatRupiah(dailyLimit)} / hari`;
+
+      // 3. Render Account Cards
+      renderAccountsCards(currentAccounts);
+
+      // 4. Fetch & Render Recent Transactions
+      const recentTxs = await fetchTransactions(currentUser.id);
+      renderRecentTransactions(recentTxs.slice(0, 5));
+
+      // 5. Check Budget Alerts
+      const budgets = await fetchBudgetsWithSpent(currentUser.id, now.getMonth() + 1, now.getFullYear());
+      renderBudgetAlerts(budgets);
+
+      lucide.createIcons();
+    }
+
+    function renderAccountsCards(accounts) {
+      const grid = document.getElementById("accountsGrid");
+      if (!accounts || accounts.length === 0) {
+        grid.innerHTML = `<div class="empty-state"><p>Belum ada akun. Silakan tambah akun baru.</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = accounts.map(acc => `
+        <div class="card overview-card">
+          <div class="overview-icon" style="background-color: var(--primary-light); color: var(--primary);">
+            <i data-lucide="${acc.type === 'cash' ? 'wallet' : acc.type === 'bank' ? 'building-2' : 'smartphone'}"></i>
+          </div>
+          <div class="overview-details">
+            <span class="overview-label">${acc.name} ${acc.is_emergency ? '🛡️' : acc.is_savings ? '🐖' : ''}</span>
+            <span class="overview-value">${formatRupiah(acc.current_balance)}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderRecentTransactions(txs) {
+      const container = document.getElementById("recentTxList");
+      if (!txs || txs.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i data-lucide="inbox"></i>
+            <h3>Belum ada transaksi</h3>
+            <p>Mulai catat transaksi pertamamu untuk memantau keuanganmu.</p>
+            <button class="btn btn-primary btn-sm" onclick="openNewTxModal()">+ Tambah Transaksi</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = txs.map(t => `
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <div class="transaction-icon" style="background-color: ${t.type === 'income' ? 'var(--success-light)' : t.type === 'expense' ? 'var(--danger-light)' : 'var(--info-light)'}">
+              <i data-lucide="${t.type === 'income' ? 'arrow-down-left' : t.type === 'expense' ? 'arrow-up-right' : 'arrow-left-right'}" 
+                 style="color: ${t.type === 'income' ? 'var(--success)' : t.type === 'expense' ? 'var(--danger)' : 'var(--info)'}; width:20px; height:20px;"></i>
+            </div>
+            <div class="transaction-details">
+              <span class="transaction-title">${t.description || 'Transaksi'}</span>
+              <span class="transaction-meta">${formatDateShort(t.transaction_date)} • ${t.account?.name || '-'}</span>
+            </div>
+          </div>
+          <div class="transaction-amount ${t.type === 'income' ? 'text-success' : t.type === 'expense' ? 'text-danger' : ''}">
+            ${t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''} ${formatRupiah(t.amount)}
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderBudgetAlerts(budgets) {
+      const box = document.getElementById("budgetAlertContent");
+      const warnings = budgets.filter(b => b.alert_status !== "normal");
+
+      if (warnings.length === 0) {
+        box.innerHTML = `<span class="text-success">✅ Semua budget bulanan kamu masih dalam batas aman.</span>`;
+        return;
+      }
+
+      box.innerHTML = warnings.map(w => `
+        <div style="margin-bottom: 0.4rem;">
+          ${w.alert_status === 'exceeded' ? '🔴' : '⚠️'} <strong>Budget ${w.category?.name}</strong>: ${w.alert_status === 'exceeded' ? 'Telah terlampaui!' : `Mencapai ${w.raw_percentage.toFixed(0)}%`} (${formatRupiah(w.actual_spent)} / ${formatRupiah(w.amount)})
+        </div>
+      `).join("");
+    }
+
+    // Open Modal Helper & Populate Options
+    async function openNewTxModal(type = "expense") {
+      currentTxType = type;
+      selectTxTab(type);
+
+      // Populate Accounts
+      const accSelect = document.getElementById("txAccount");
+      const destSelect = document.getElementById("txDestAccount");
+      accSelect.innerHTML = currentAccounts.map(a => `<option value="${a.id}">${a.name} (${formatRupiah(a.current_balance)})</option>`).join("");
+      destSelect.innerHTML = currentAccounts.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+
+      // Populate Categories
+      const categories = await fetchCategories(currentUser.id, type === "transfer" ? null : type);
+      const catSelect = document.getElementById("txCategory");
+      catSelect.innerHTML = categories.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+
+      openModal("txModal");
+      updateSimulator();
+    }
+
+    function setupModalTabs() {
+      document.getElementById("txTabExpense").addEventListener("click", () => selectTxTab("expense"));
+      document.getElementById("txTabIncome").addEventListener("click", () => selectTxTab("income"));
+      document.getElementById("txTabTransfer").addEventListener("click", () => selectTxTab("transfer"));
+
+      document.getElementById("txAmount").addEventListener("input", updateSimulator);
+      document.getElementById("txAccount").addEventListener("change", updateSimulator);
+
+      document.getElementById("txForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const payload = {
+          type: currentTxType,
+          amount: document.getElementById("txAmount").value,
+          description: document.getElementById("txDesc").value,
+          account_id: document.getElementById("txAccount").value,
+          destination_account_id: currentTxType === "transfer" ? document.getElementById("txDestAccount").value : null,
+          category_id: currentTxType !== "transfer" ? document.getElementById("txCategory").value : null,
+          income_source: currentTxType === "income" ? document.getElementById("txIncomeSource").value : null,
+          transaction_date: document.getElementById("txDate").value,
+          transaction_time: document.getElementById("txTime").value
+        };
+
+        const res = await saveTransaction(currentUser.id, payload);
+        if (res.success) {
+          closeModal("txModal");
+          await loadDashboardData();
+        }
+      });
+    }
+
+    function selectTxTab(type) {
+      currentTxType = type;
+      document.getElementById("txTabExpense").className = type === "expense" ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm";
+      document.getElementById("txTabIncome").className = type === "income" ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm";
+      document.getElementById("txTabTransfer").className = type === "transfer" ? "btn btn-primary btn-sm" : "btn btn-secondary btn-sm";
+
+      if (type === "transfer") {
+        document.getElementById("destAccountGroup").classList.remove("hidden");
+        document.getElementById("categoryGroup").classList.add("hidden");
+        document.getElementById("incomeSourceGroup").classList.add("hidden");
+      } else if (type === "income") {
+        document.getElementById("destAccountGroup").classList.add("hidden");
+        document.getElementById("categoryGroup").classList.add("hidden");
+        document.getElementById("incomeSourceGroup").classList.remove("hidden");
+      } else {
+        document.getElementById("destAccountGroup").classList.add("hidden");
+        document.getElementById("categoryGroup").classList.remove("hidden");
+        document.getElementById("incomeSourceGroup").classList.add("hidden");
+      }
+      updateSimulator();
+    }
+
+    function updateSimulator() {
+      const amt = Number(document.getElementById("txAmount").value) || 0;
+      const accId = document.getElementById("txAccount").value;
+      const acc = currentAccounts.find(a => a.id === accId);
+      const output = document.getElementById("simulatorOutput");
+
+      if (!acc) {
+        output.textContent = "Pilih akun pembayaran untuk melihat simulasi.";
+        return;
+      }
+
+      const currentBal = acc.current_balance;
+      let nextBal = currentBal;
+
+      if (currentTxType === "expense" || currentTxType === "transfer") {
+        nextBal = currentBal - amt;
+      } else if (currentTxType === "income") {
+        nextBal = currentBal + amt;
+      }
+
+      output.innerHTML = `
+        <strong>${acc.name}</strong>: Saldo awal <b>${formatRupiah(currentBal)}</b> 
+        → Saldo setelahnya: <b class="${nextBal < 0 ? 'text-danger' : 'text-success'}">${formatRupiah(nextBal)}</b>
+      `;
+    }
+  </script>
+</body>
+</html>

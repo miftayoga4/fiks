@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hutang & Piutang - MY FINANCE</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/accounts.js"></script>
+  <script src="js/transactions.js"></script>
+  <script src="js/debts.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><i data-lucide="wallet"></i><span>MY FINANCE</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">UTAMA</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="transactions.html" class="nav-item"><i data-lucide="arrow-left-right"></i> Transaksi</a>
+        <a href="accounts.html" class="nav-item"><i data-lucide="credit-card"></i> Akun & Saldo</a>
+        <a href="budget.html" class="nav-item"><i data-lucide="pie-chart"></i> Budget</a>
+        <a href="savings.html" class="nav-item"><i data-lucide="piggy-bank"></i> Tabungan</a>
+        <a href="analytics.html" class="nav-item"><i data-lucide="line-chart"></i> Analitik</a>
+        <a href="reports.html" class="nav-item"><i data-lucide="file-text"></i> Laporan</a>
+        <div class="nav-section-title" style="margin-top: 1rem;">LAINNYA</div>
+        <a href="calendar.html" class="nav-item"><i data-lucide="calendar"></i> Kalender</a>
+        <a href="debts.html" class="nav-item active"><i data-lucide="receipt"></i> Hutang & Piutang</a>
+        <a href="bills.html" class="nav-item"><i data-lucide="clock"></i> Tagihan</a>
+        <a href="categories.html" class="nav-item"><i data-lucide="tags"></i> Kategori</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> Pengaturan</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div class="page-title-group">
+          <h1>Hutang & Piutang</h1>
+          <p>Catat kewajiban bayar dan tagihan orang lain yang belum kamu terima</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addDebtModal')"><i data-lucide="plus"></i> Catat Baru</button>
+      </header>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+        <!-- Debts Column -->
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--danger); margin-bottom: 0.75rem;">Hutang Saya (Harus Dibayar)</h3>
+          <div id="debtsList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+        </div>
+
+        <!-- Receivables Column -->
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--success); margin-bottom: 0.75rem;">Piutang Saya (Belum Diterima)</h3>
+          <div id="receivablesList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Debt/Receivable Modal -->
+  <div class="modal-overlay" id="addDebtModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Tambah Catatan</h3>
+        <button class="btn-icon" onclick="closeModal('addDebtModal')">✕</button>
+      </div>
+      <form id="addDebtForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Jenis</label>
+            <select class="form-select" id="dIsDebt">
+              <option value="true">Hutang (Saya berhutang ke orang)</option>
+              <option value="false">Piutang (Orang lain berhutang ke saya)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nama Orang</label>
+            <input class="form-input" type="text" id="dName" placeholder="e.g. Budi Kos" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nominal (Rp)</label>
+            <input class="form-input" type="number" id="dAmount" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Jatuh Tempo</label>
+            <input class="form-input" type="date" id="dDueDate">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('addDebtModal')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pay Modal -->
+  <div class="modal-overlay" id="payModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="payModalTitle">Bayar / Pelunasan</h3>
+        <button class="btn-icon" onclick="closeModal('payModal')">✕</button>
+      </div>
+      <form id="payForm">
+        <div class="modal-body">
+          <input type="hidden" id="pId">
+          <input type="hidden" id="pIsDebt">
+          <div class="form-group">
+            <label class="form-label">Nominal Pembayaran (Rp)</label>
+            <input class="form-input" type="number" id="pAmount" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Catat ke Transaksi Akun (Opsional)</label>
+            <select class="form-select" id="pAccount">
+              <option value="">Jangan catat ke transaksi</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('payModal')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Pembayaran</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let accountsList = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      accountsList = await fetchAccountsWithBalances(currentUser.id);
+      loadDebtsData();
+
+      document.getElementById("addDebtForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const isDebt = document.getElementById("dIsDebt").value === "true";
+        const name = document.getElementById("dName").value;
+        const amt = document.getElementById("dAmount").value;
+        const due = document.getElementById("dDueDate").value;
+
+        await createDebtOrReceivable(currentUser.id, isDebt, name, amt, due, "");
+        closeModal("addDebtModal");
+        loadDebtsData();
+      });
+
+      document.getElementById("payForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const id = document.getElementById("pId").value;
+        const isDebt = document.getElementById("pIsDebt").value === "true";
+        const amt = document.getElementById("pAmount").value;
+        const accId = document.getElementById("pAccount").value;
+
+        await recordDebtPayment(currentUser.id, id, isDebt, amt, accId);
+        closeModal("payModal");
+        loadDebtsData();
+      });
+    });
+
+    async function loadDebtsData() {
+      const { debts, receivables } = await fetchDebtsAndReceivables(currentUser.id);
+
+      const dContainer = document.getElementById("debtsList");
+      dContainer.innerHTML = debts.length === 0 ? `<div class="empty-state"><p>Tidak ada catatan hutang.</p></div>` :
+        debts.map(d => `
+          <div class="card">
+            <div style="display: flex; justify-content: space-between;">
+              <strong>${d.person_name}</strong>
+              <span class="badge ${d.status === 'paid' ? 'badge-income' : 'badge-expense'}">${d.status.toUpperCase()}</span>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--danger); margin: 0.25rem 0;">
+              ${formatRupiah(d.amount - d.paid_amount)} <span style="font-size: 0.75rem; color: var(--text-muted);">terbayar ${formatRupiah(d.paid_amount)}</span>
+            </div>
+            ${d.status !== 'paid' ? `<button class="btn btn-secondary btn-sm" onclick="openPayModal('${d.id}', true, ${d.amount - d.paid_amount})">Bayar / Pelunasan</button>` : ''}
+          </div>
+        `).join("");
+
+      const rContainer = document.getElementById("receivablesList");
+      rContainer.innerHTML = receivables.length === 0 ? `<div class="empty-state"><p>Tidak ada catatan piutang.</p></div>` :
+        receivables.map(r => `
+          <div class="card">
+            <div style="display: flex; justify-content: space-between;">
+              <strong>${r.person_name}</strong>
+              <span class="badge ${r.status === 'paid' ? 'badge-income' : 'badge-warning'}">${r.status.toUpperCase()}</span>
+            </div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--success); margin: 0.25rem 0;">
+              ${formatRupiah(r.amount - r.received_amount)} <span style="font-size: 0.75rem; color: var(--text-muted);">diterima ${formatRupiah(r.received_amount)}</span>
+            </div>
+            ${r.status !== 'paid' ? `<button class="btn btn-secondary btn-sm" onclick="openPayModal('${r.id}', false, ${r.amount - r.received_amount})">Terima Pembayaran</button>` : ''}
+          </div>
+        `).join("");
+
+      lucide.createIcons();
+    }
+
+    function openPayModal(id, isDebt, remaining) {
+      document.getElementById("pId").value = id;
+      document.getElementById("pIsDebt").value = isDebt;
+      document.getElementById("pAmount").value = remaining;
+
+      const accSel = document.getElementById("pAccount");
+      accSel.innerHTML = `<option value="">Jangan catat ke transaksi</option>` +
+        accountsList.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+
+      openModal("payModal");
+    }
+  </script>
+</body>
+</html>

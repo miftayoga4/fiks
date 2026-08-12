@@ -1,0 +1,231 @@
+/* ====================================================================
+   MY FINANCE - DASHBOARD STYLES (SLEEK INTERFACE THEME)
+   ==================================================================== */
+
+.dashboard-hero {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+  color: white;
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  border: 1px solid #3b82f6;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-hero::after {
+  content: '';
+  position: absolute;
+  right: -40px;
+  bottom: -40px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.hero-welcome {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #dbeafe;
+}
+
+.hero-date {
+  font-size: 0.8rem;
+  color: #e0f2fe;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.hero-total-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.hero-total-amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0.35rem 0 1.5rem 0;
+  color: #ffffff;
+}
+
+.hero-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-top: 1.25rem;
+}
+
+.stat-item-label {
+  font-size: 0.75rem;
+  color: #bfdbfe;
+}
+
+.stat-item-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+  color: white;
+}
+
+/* Quick Actions Grid */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.85rem;
+}
+
+.quick-action-btn {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.quick-action-btn:hover {
+  border-color: #bfdbfe;
+  background-color: var(--primary-light);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+}
+
+.quick-action-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Overview Cards Grid */
+.overview-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.overview-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.overview-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--primary-light);
+  border: 1px solid #bfdbfe;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.overview-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.overview-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.overview-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* Transaction List Item */
+.transaction-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.transaction-item:hover {
+  background-color: rgba(255, 255, 255, 0.015);
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-info {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.transaction-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.transaction-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.transaction-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.transaction-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.transaction-amount {
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: right;
+}

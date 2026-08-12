@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaksi - MY FINANCE</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/transactions.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><i data-lucide="wallet"></i><span>MY FINANCE</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">UTAMA</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="transactions.html" class="nav-item active"><i data-lucide="arrow-left-right"></i> Transaksi</a>
+        <a href="accounts.html" class="nav-item"><i data-lucide="credit-card"></i> Akun & Saldo</a>
+        <a href="budget.html" class="nav-item"><i data-lucide="pie-chart"></i> Budget</a>
+        <a href="savings.html" class="nav-item"><i data-lucide="piggy-bank"></i> Tabungan</a>
+        <a href="analytics.html" class="nav-item"><i data-lucide="line-chart"></i> Analitik</a>
+        <a href="reports.html" class="nav-item"><i data-lucide="file-text"></i> Laporan</a>
+        <div class="nav-section-title" style="margin-top: 1rem;">LAINNYA</div>
+        <a href="calendar.html" class="nav-item"><i data-lucide="calendar"></i> Kalender</a>
+        <a href="debts.html" class="nav-item"><i data-lucide="receipt"></i> Hutang & Piutang</a>
+        <a href="bills.html" class="nav-item"><i data-lucide="clock"></i> Tagihan</a>
+        <a href="categories.html" class="nav-item"><i data-lucide="tags"></i> Kategori</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> Pengaturan</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div class="page-title-group">
+          <h1>Riwayat Transaksi</h1>
+          <p>Cari, filter, dan kelola seluruh catatan transaksi keuanganmu</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" id="toggleDeletedBtn"><i data-lucide="trash-2"></i> Recently Deleted</button>
+        </div>
+      </header>
+
+      <!-- Filter Controls -->
+      <div class="card" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+        <div>
+          <label class="form-label">Cari Transaksi</label>
+          <input class="form-input" type="text" id="filterSearch" placeholder="Cari nama/catatan...">
+        </div>
+        <div>
+          <label class="form-label">Jenis</label>
+          <select class="form-select" id="filterType">
+            <option value="">Semua Jenis</option>
+            <option value="income">Pemasukan</option>
+            <option value="expense">Pengeluaran</option>
+            <option value="transfer">Transfer</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Dari Tanggal</label>
+          <input class="form-input" type="date" id="filterStartDate">
+        </div>
+        <div>
+          <label class="form-label">Sampai Tanggal</label>
+          <input class="form-input" type="date" id="filterEndDate">
+        </div>
+      </div>
+
+      <!-- Transactions List Card -->
+      <div class="card">
+        <div class="transaction-list" id="txTableList">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let showingDeleted = false;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      loadTxData();
+
+      document.getElementById("filterSearch").addEventListener("input", loadTxData);
+      document.getElementById("filterType").addEventListener("change", loadTxData);
+      document.getElementById("filterStartDate").addEventListener("change", loadTxData);
+      document.getElementById("filterEndDate").addEventListener("change", loadTxData);
+
+      document.getElementById("toggleDeletedBtn").addEventListener("click", () => {
+        showingDeleted = !showingDeleted;
+        document.getElementById("toggleDeletedBtn").className = showingDeleted ? "btn btn-danger" : "btn btn-secondary";
+        loadTxData();
+      });
+    });
+
+    async function loadTxData() {
+      const filters = {
+        searchQuery: document.getElementById("filterSearch").value,
+        type: document.getElementById("filterType").value,
+        startDate: document.getElementById("filterStartDate").value,
+        endDate: document.getElementById("filterEndDate").value,
+        includeDeleted: showingDeleted
+      };
+
+      const txs = await fetchTransactions(currentUser.id, filters);
+      const container = document.getElementById("txTableList");
+
+      if (txs.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i data-lucide="inbox"></i><h3>Tidak ada transaksi ditemukan</h3></div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = txs.map(t => `
+        <div class="transaction-item">
+          <div class="transaction-info">
+            <div class="transaction-icon" style="background-color: ${t.type === 'income' ? 'var(--success-light)' : t.type === 'expense' ? 'var(--danger-light)' : 'var(--info-light)'}">
+              <i data-lucide="${t.type === 'income' ? 'arrow-down-left' : t.type === 'expense' ? 'arrow-up-right' : 'arrow-left-right'}" 
+                 style="color: ${t.type === 'income' ? 'var(--success)' : t.type === 'expense' ? 'var(--danger)' : 'var(--info)'}; width:20px; height:20px;"></i>
+            </div>
+            <div class="transaction-details">
+              <span class="transaction-title">${t.description || 'Transaksi'}</span>
+              <span class="transaction-meta">${formatDateShort(t.transaction_date)} • ${t.account?.name || '-'} ${t.category ? '• ' + t.category.name : ''}</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div class="transaction-amount ${t.type === 'income' ? 'text-success' : t.type === 'expense' ? 'text-danger' : ''}">
+              ${t.type === 'income' ? '+' : t.type === 'expense' ? '-' : ''} ${formatRupiah(t.amount)}
+            </div>
+            ${showingDeleted ? `
+              <button class="btn btn-secondary btn-sm" onclick="handleRestore('${t.id}')">Pulihkan</button>
+            ` : `
+              <button class="btn-icon" onclick="handleDelete('${t.id}')" title="Hapus"><i data-lucide="trash-2" style="width: 16px; height: 16px; color: var(--danger);"></i></button>
+            `}
+          </div>
+        </div>
+      `).join("");
+
+      lucide.createIcons();
+    }
+
+    async function handleDelete(id) {
+      if (confirm("Apakah kamu yakin ingin menghapus transaksi ini?")) {
+        await deleteTransaction(currentUser.id, id);
+        await loadTxData();
+      }
+    }
+
+    async function handleRestore(id) {
+      await restoreTransaction(currentUser.id, id);
+      await loadTxData();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Akun & Saldo - MY FINANCE</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/accounts.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><i data-lucide="wallet"></i><span>MY FINANCE</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">UTAMA</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="transactions.html" class="nav-item"><i data-lucide="arrow-left-right"></i> Transaksi</a>
+        <a href="accounts.html" class="nav-item active"><i data-lucide="credit-card"></i> Akun & Saldo</a>
+        <a href="budget.html" class="nav-item"><i data-lucide="pie-chart"></i> Budget</a>
+        <a href="savings.html" class="nav-item"><i data-lucide="piggy-bank"></i> Tabungan</a>
+        <a href="analytics.html" class="nav-item"><i data-lucide="line-chart"></i> Analitik</a>
+        <a href="reports.html" class="nav-item"><i data-lucide="file-text"></i> Laporan</a>
+        <div class="nav-section-title" style="margin-top: 1rem;">LAINNYA</div>
+        <a href="calendar.html" class="nav-item"><i data-lucide="calendar"></i> Kalender</a>
+        <a href="debts.html" class="nav-item"><i data-lucide="receipt"></i> Hutang & Piutang</a>
+        <a href="bills.html" class="nav-item"><i data-lucide="clock"></i> Tagihan</a>
+        <a href="categories.html" class="nav-item"><i data-lucide="tags"></i> Kategori</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> Pengaturan</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div class="page-title-group">
+          <h1>Akun & Saldo Keuangan</h1>
+          <p>Kelola tempat penyimpanan uangmu (Bank, E-Wallet, Cash, Cash Darurat)</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('addAccountModal')"><i data-lucide="plus"></i> Tambah Akun Baru</button>
+      </header>
+
+      <div class="overview-cards-grid" id="accountsDetailedGrid">
+        <!-- Rendered dynamically -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Account Modal -->
+  <div class="modal-overlay" id="addAccountModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Tambah Akun Baru</h3>
+        <button class="btn-icon" onclick="closeModal('addAccountModal')">✕</button>
+      </div>
+      <form id="addAccountForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nama Akun (e.g. BRImo, DANA, Cash Utama)</label>
+            <input class="form-input" type="text" id="accName" required placeholder="Nama Akun">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipe Akun</label>
+            <select class="form-select" id="accType" required>
+              <option value="cash">Cash / Tunai</option>
+              <option value="bank">Bank / Rekening</option>
+              <option value="ewallet">E-Wallet</option>
+              <option value="savings">Tabungan Digital</option>
+              <option value="other">Lainnya</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Saldo Awal (Rp)</label>
+            <input class="form-input" type="number" id="accInitial" value="0">
+          </div>
+          <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+              <input type="checkbox" id="accEmergency"> Tandai sebagai <strong>Dana Darurat (is_emergency)</strong>
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+              <input type="checkbox" id="accSavings"> Tandai sebagai <strong>Tabungan (is_savings)</strong>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('addAccountModal')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Akun</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Balance Adjustment Modal -->
+  <div class="modal-overlay" id="adjustModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Koreksi Saldo Akun</h3>
+        <button class="btn-icon" onclick="closeModal('adjustModal')">✕</button>
+      </div>
+      <form id="adjustForm">
+        <div class="modal-body">
+          <input type="hidden" id="adjAccountId">
+          <input type="hidden" id="adjCurrentBal">
+          <div class="form-group">
+            <label class="form-label">Saldo Riil / Sebenarnya (Rp)</label>
+            <input class="form-input" type="number" id="adjActual" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Alasan Koreksi</label>
+            <input class="form-input" type="text" id="adjReason" placeholder="e.g. Lupa mencatat parkir / admin bank">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('adjustModal')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Koreksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentUser = null;
+    let accountsList = [];
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      loadAccountsData();
+
+      document.getElementById("addAccountForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("accName").value;
+        const type = document.getElementById("accType").value;
+        const initial = document.getElementById("accInitial").value;
+        const emergency = document.getElementById("accEmergency").checked;
+        const savings = document.getElementById("accSavings").checked;
+
+        await createAccount(currentUser.id, name, type, initial, emergency, savings);
+        closeModal("addAccountModal");
+        loadAccountsData();
+      });
+
+      document.getElementById("adjustForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const accId = document.getElementById("adjAccountId").value;
+        const curBal = document.getElementById("adjCurrentBal").value;
+        const actualBal = document.getElementById("adjActual").value;
+        const reason = document.getElementById("adjReason").value;
+
+        await recordBalanceAdjustment(currentUser.id, accId, curBal, actualBal, reason);
+        closeModal("adjustModal");
+        loadAccountsData();
+      });
+    });
+
+    async function loadAccountsData() {
+      accountsList = await fetchAccountsWithBalances(currentUser.id);
+      const grid = document.getElementById("accountsDetailedGrid");
+
+      if (accountsList.length === 0) {
+        grid.innerHTML = `<div class="empty-state"><p>Belum ada akun.</p></div>`;
+        return;
+      }
+
+      grid.innerHTML = accountsList.map(a => `
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+              <h3 class="card-title">${a.name}</h3>
+              <span class="badge ${a.is_emergency ? 'badge-warning' : a.is_savings ? 'badge-income' : 'badge-transfer'}">
+                ${a.is_emergency ? 'Dana Darurat' : a.is_savings ? 'Tabungan' : a.type.toUpperCase()}
+              </span>
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary); margin: 0.5rem 0;">
+              ${formatRupiah(a.current_balance)}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              Saldo Awal: ${formatRupiah(a.initial_balance)}
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="openAdjustModal('${a.id}', ${a.current_balance})">
+            ⚙️ Koreksi Saldo
+          </button>
+        </div>
+      `).join("");
+
+      lucide.createIcons();
+    }
+
+    function openAdjustModal(accId, curBal) {
+      document.getElementById("adjAccountId").value = accId;
+      document.getElementById("adjCurrentBal").value = curBal;
+      document.getElementById("adjActual").value = curBal;
+      openModal("adjustModal");
+    }
+  </script>
+</body>
+</html>

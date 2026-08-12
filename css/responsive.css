@@ -1,0 +1,60 @@
+/* ====================================================================
+   MY FINANCE - RESPONSIVE STYLES
+   ==================================================================== */
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+  
+  .main-content {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    margin-left: 0;
+    padding: 1rem 1rem calc(var(--bottom-nav-height) + 1.5rem) 1rem;
+  }
+  
+  .bottom-nav {
+    display: flex;
+  }
+  
+  .hero-total-amount {
+    font-size: 1.85rem;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .overview-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toast-container {
+    left: 1rem;
+    right: 1rem;
+    bottom: calc(var(--bottom-nav-height) + 1rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .hero-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

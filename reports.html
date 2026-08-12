@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Keuangan - MY FINANCE</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/transactions.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><i data-lucide="wallet"></i><span>MY FINANCE</span></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">UTAMA</div>
+        <a href="dashboard.html" class="nav-item"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a href="transactions.html" class="nav-item"><i data-lucide="arrow-left-right"></i> Transaksi</a>
+        <a href="accounts.html" class="nav-item"><i data-lucide="credit-card"></i> Akun & Saldo</a>
+        <a href="budget.html" class="nav-item"><i data-lucide="pie-chart"></i> Budget</a>
+        <a href="savings.html" class="nav-item"><i data-lucide="piggy-bank"></i> Tabungan</a>
+        <a href="analytics.html" class="nav-item"><i data-lucide="line-chart"></i> Analitik</a>
+        <a href="reports.html" class="nav-item active"><i data-lucide="file-text"></i> Laporan</a>
+        <div class="nav-section-title" style="margin-top: 1rem;">LAINNYA</div>
+        <a href="calendar.html" class="nav-item"><i data-lucide="calendar"></i> Kalender</a>
+        <a href="debts.html" class="nav-item"><i data-lucide="receipt"></i> Hutang & Piutang</a>
+        <a href="bills.html" class="nav-item"><i data-lucide="clock"></i> Tagihan</a>
+        <a href="categories.html" class="nav-item"><i data-lucide="tags"></i> Kategori</a>
+        <a href="settings.html" class="nav-item"><i data-lucide="settings"></i> Pengaturan</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="page-header">
+        <div class="page-title-group">
+          <h1>Laporan Tahunan & Export Data</h1>
+          <p>Rekapitulasi keuangan tahunan, analisis rata-rata harian/bulanan, dan export CSV/PDF</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <select class="form-select" id="reportYearSelect" style="width: 100px;">
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+            <option value="2028">2028</option>
+          </select>
+          <button class="btn btn-primary" id="exportCsvBtn"><i data-lucide="download"></i> Export CSV</button>
+        </div>
+      </header>
+
+      <!-- Overview Grid -->
+      <div class="overview-cards-grid" id="annualSummaryGrid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Monthly Breakdown Table -->
+      <div class="card" style="margin-top: 1.5rem;">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Rincian Bulanan</h3>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                <th style="padding: 0.75rem;">Bulan</th>
+                <th style="padding: 0.75rem;">Pemasukan</th>
+                <th style="padding: 0.75rem;">Pengeluaran</th>
+                <th style="padding: 0.75rem;">Net Cash Flow</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      lucide.createIcons();
+      currentUser = await requireAuth();
+      if (!currentUser) return;
+
+      loadReport();
+
+      document.getElementById("reportYearSelect").addEventListener("change", loadReport);
+      document.getElementById("exportCsvBtn").addEventListener("click", async () => {
+        const txs = await fetchTransactions(currentUser.id);
+        exportTransactionsToCSV(txs);
+      });
+    });
+
+    async function loadReport() {
+      const year = document.getElementById("reportYearSelect").value;
+      const data = await fetchAnnualReport(currentUser.id, year);
+      if (!data) return;
+
+      const summaryGrid = document.getElementById("annualSummaryGrid");
+      summaryGrid.innerHTML = `
+        <div class="card">
+          <div class="overview-label">TOTAL PEMASUKAN (${year})</div>
+          <div class="overview-value text-success">${formatRupiah(data.totalIncome)}</div>
+        </div>
+        <div class="card">
+          <div class="overview-label">TOTAL PENGELUARAN (${year})</div>
+          <div class="overview-value text-danger">${formatRupiah(data.totalExpense)}</div>
+        </div>
+        <div class="card">
+          <div class="overview-label">RATA-RATA PENGELUARAN BULANAN</div>
+          <div class="overview-value">${formatRupiah(data.monthlyAverageExpense)}</div>
+        </div>
+        <div class="card">
+          <div class="overview-label">RATA-RATA PENGELUARAN HARIAN</div>
+          <div class="overview-value">${formatRupiah(data.dailyAverageExpense)}</div>
+        </div>
+      `;
+
+      const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+      const tbody = document.getElementById("monthlyTableBody");
+      tbody.innerHTML = data.months.map((m, idx) => {
+        const net = m.income - m.expense;
+        return `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 0.75rem; font-weight: 600;">${monthNames[idx]}</td>
+            <td style="padding: 0.75rem;" class="text-success">${formatRupiah(m.income)}</td>
+            <td style="padding: 0.75rem;" class="text-danger">${formatRupiah(m.expense)}</td>
+            <td style="padding: 0.75rem; font-weight: 700;" class="${net >= 0 ? 'text-success' : 'text-danger'}">${formatRupiah(net)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "My Finance",
+  "description": "Personal Financial Management untuk Anak Kos - PWA & Financial Tracker",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
